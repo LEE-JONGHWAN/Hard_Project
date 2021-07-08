@@ -5,7 +5,8 @@ import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Random;
 
-import com.jhlee.hardmodule.BrandName;
+import hard_project_main.util.BrandName;
+
 
 
 
@@ -46,7 +47,7 @@ public class HardProduct implements Comparable<HardProduct>{
 			Arrays.sort(products);
 		} else {
 			정렬기준.append("고객평가 감소순 => ");
-			Arrays.sort(products, new CompareTeaCustEval());
+			Arrays.sort(products, new CompareHardCustEval());
 		}
 		System.out.println(정렬기준);
 		for (HardProduct product : products) {
@@ -84,7 +85,8 @@ public class HardProduct implements Comparable<HardProduct>{
 	 * @param 고객평점
 	 * @param 제품설명
 	 */
-	public HardProduct(BrandName brandName, BigDecimal 가격, LocalDate 제품등록일, int 재고수량, LocalDate 생산일, float 제품중량,
+	public HardProduct(BrandName brandName, BigDecimal 가격, 
+		LocalDate 제품등록일, int 재고수량, LocalDate 생산일, float 제품중량,
 			String 중량설명, float 고객평점, String 제품설명) {
 		super();
 		this.brandName = brandName;

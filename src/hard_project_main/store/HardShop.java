@@ -11,9 +11,7 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.jbpark.dabang.store.TeaInputException;
-import com.jbpark.dabang.utility.TeaType;
-import com.jhlee.utility.JH_FileHandler;
+import com.jbpark.utility.JH_FileHandler;
 
 import hard_project_main.util.BrandName;
 import jbpark.utility.SuffixChecker;
@@ -36,7 +34,7 @@ public class HardShop {
 	int LOG_ROTATION_COUNT = 10;
 	JH_FileHandler handler;
 	try {
-		String logFile = "D:/LOG/JB_Dabang"; 
+		String logFile = "D:/LOG/JH_HardStore"; 
 		System.out.println("로그파일: " 
 				+ logFile + ".*.log.*");
 		handler = new JH_FileHandler(
