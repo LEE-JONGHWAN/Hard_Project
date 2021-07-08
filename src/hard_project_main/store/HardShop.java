@@ -1,12 +1,22 @@
 package hard_project_main.store;
 
+import java.awt.Toolkit;
+import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import com.jbpark.dabang.store.TeaInputException;
+import com.jbpark.dabang.utility.TeaType;
+import com.jhlee.utility.JH_FileHandler;
 
 import hard_project_main.util.BrandName;
+import jbpark.utility.SuffixChecker;
 
 /**
  * 
@@ -18,120 +28,197 @@ import hard_project_main.util.BrandName;
  *
  */
 public class HardShop {
-
-	public static void main(String[] args) {
-		
-		/**
-		 * 하기의 입력은 클래스 정의를 간단하게 하기 위해서 
-		 * 만드는 함수이다.
-		 */
-		var hshop = new HardShop();
-		
-		/**
-		 * 
-		 * 이곳은 하드디스크 전문 스토어이다.
-		 * 첫번째로 스토어의 환영 인사말로 시작한다.
-		 * System.out.println("=".repeat(20)); 문의 repeat(20)은 반복문으로서
-		 * 의미 없이 반복 해서 출력해야 하는 String문에 입력하면 문자수를 줄일수 있다.
-		 * 그럼 이제 만들어 보자.
-		 * 
-		 */
-		System.out.println("=".repeat(20));
-		System.out.println("하드디스크 전문 스토어에 오신걸 환영합니다!");
-		System.out.println("=".repeat(20));
-		System.out.println("\n");
-		
-		/*
-		 * 입력문을 받아야 하기에 그 입력 받고 출력하는 곳을 내부에 클래스 문으로 입력하자.
-		 * [Selection]이라는 메소드로 만들어 그것을 불러내 보자.
-		 * hshop.Selection();은 [Selection]이란 메소드를 불러내는 것이다.
-		 */
-		hshop.Selection();
-		
-		/**
-		 * [BrandName]의 Enum문이 null일때 do while 문을 실행한다.
-		 */
-		BrandName type = null;
-		do {
-			type = hshop.getHardSelection();
-		} while (type == null);
-		System.out.println("당신이 주문한 " + type + "을 준비할께요.");
+	private static Logger logger 
+	= Logger.getLogger("hard_project_main.store");
+{
+	logger.setLevel(Level.INFO);
+	logger.setUseParentHandlers(false);
+	int LOG_ROTATION_COUNT = 10;
+	JH_FileHandler handler;
+	try {
+		String logFile = "D:/LOG/JB_Dabang"; 
+		System.out.println("로그파일: " 
+				+ logFile + ".*.log.*");
+		handler = new JH_FileHandler(
+				logFile + ".%g.log", 0, 
+				LOG_ROTATION_COUNT);
+		handler.setLevel(Level.INFO);
+		logger.addHandler(handler);
+	} catch (SecurityException | IOException e) {
+		e.printStackTrace();
 	}
+}
 	
-		private BrandName getHardSelection() {
-			//@formatter:off
-		Scanner scanner = new Scanner(System.in);
-		String selection = scanner.nextLine();
-		
-		selection = selection.trim();
-		for (var type : BrandName.values()) {
-			if (type.get단축명().equals(selection) || 
-					type.name().indexOf(selection) >= 0) {
-				System.out.println(type + "?");
-				if (selectionConfirmed(type, scanner))
-					return type;
+	
+	public static void main(String[] args) {
+		var hshop = new HardShop();
+		try (Scanner scanner = new Scanner(System.in)) {
+			while (true) {
+				hshop.serveOneCustomer(scanner);
+				for (int i = 0; i<3; i++) {
+					System.out.println(".");
+					try {
+						Thread.sleep(200);
+					} catch (InterruptedException e) {}
+				}
 			}
 		}
-		return null;
-		//@formatter:on
+	}
+
+	private void serveOneCustomer(Scanner scanner) {
+		System.out.println("다음 손님 어서오세요...");
+		System.out.println("J.H.하드스토어가 당신을 환영합니다");
+
+		BrandName type = null;  
+		
+		do {
+			showHardSelection();
+			try {
+				type = getHardSelection(scanner);
+			} catch (HardInputException te) {
+				String msg = "'는 잘못된 입력입니다. 다시 선택해 주세요.";
+				System.out.println("'" + te.getMessage() + msg);
+				continue;
+			}
+			if (type == null) {
+				if (getUserResponse("주문을 원치 않으십니까",
+						scanner))
+					break;
+			} else 
+				break;
+		} while (true);
+		
+		if (type == null)
+			System.out.println("안녕히 가십시오.");
+		else {
+			String tea = type.name();
+			int idx = tea.length() - 1;
+			int cp = tea.codePointAt(idx);
+			String msg = "당신이 주문한 '" 
+					+ tea
+					+ (SuffixChecker.has받침(cp, 
+						tea.substring(idx)) ? "'을" : "'를") 
+				+ " 준비할께요.";
+			DateTimeFormatter dtf 
+				= DateTimeFormatter.ofPattern("HH:mm");
+			String timeLabel = LocalTime.now().format(dtf);
+			logger.info(msg + ", 주문 시각: " + timeLabel);
+			System.out.println(msg);
+		}
+		Toolkit.getDefaultToolkit().beep();
+	}
+
+	
+		private BrandName getHardSelection(Scanner scanner) 
+				throws HardInputException {
+			String selection = 입력접수(scanner);
+
+			if (selection.isEmpty()) {
+				return null;
+			}
+			for (var type : BrandName.values()) {
+				if (type.get단축명().equals(selection) || 
+						type.name().indexOf(selection) >= 0) {
+					String teaLong = type.toString();
+					int idx = teaLong.indexOf('(');
+					int cp = teaLong.codePointAt(--idx);
+					String sfx = SuffixChecker.has받침(
+							cp, teaLong.substring(idx))
+							? "을" : "를";
+					String msg = type + sfx + " 선택하셨습니까";
+					boolean resp = getUserResponse(msg, scanner);
+					
+					if (resp)
+						return type;
+					else
+						return null;
+				}
+			}
+			throw new HardInputException(selection);
 	}
 	
-	
-	
-	/**
-	 * 고객이 원하는 하드디스크가 맞는지 확인한다.
-	 * 
-	 * @param type    고객이 선택한 하드디스크 종류
-	 * @param scanner 고객 입력 접수용 참조
-	 * @return 맞으면 참, 아니면 거짓
-	 */
-	private boolean selectionConfirmed(BrandName type, Scanner scanner) {
-		System.out.println(type + "을 선택하셨습니까?[Y/n] : ");
-
-		String input = scanner.nextLine();
-
-		if (input != null) {
-			input = input.trim().toLowerCase();
-			if (input.length() == 0 || input.equals("y"))
-				return true;
+		private String 입력접수(Scanner scanner) {
+			String 고객입력 = "";
+			try {
+				if (scanner.hasNextLine()) {
+					고객입력 = scanner.nextLine();
+					고객입력 = 고객입력.trim();
+				}
+			} catch (RuntimeException e) {
+				e.printStackTrace();
+			}
+			return 고객입력;
 		}
-		return false;
-	}
 	
-	
-	
-	private void Selection() {
-		//[todays]로 오늘자 요일을 출력하기 위해서 사용한다.
-		LocalDate todays = LocalDate.now();
-		//@formatter:off
-		
-		//오늘 자 요일을 출력하기 위한 함수이다.
-		//ofPattern("E")의 E 는 요일을 출력하기 위한 문자이다.
-		String weekDay = todays.format(DateTimeFormatter.
-				ofPattern("E").withLocale(Locale.KOREAN));
-		
-		System.out.println("=".repeat(33));
-		System.out.println("다음 하드디스크 메이커 중에서 선택하세요:");
-		System.out.println("=".repeat(33));
-		System.out.println(" * : '" + weekDay + "'요일 특별 할인 하드디스크!");
-		
-		BrandName[] brandNames = BrandName.values();
-		long specialInx = ChronoUnit.DAYS.between(todays, 
-				LocalDate.of(2021, 6, 22)) % brandNames.length;
-		//@formatter:on
-		for (int i = 0; i < brandNames.length; i++) {
-			var hrMenu = new StringBuffer(" -");
-			hrMenu.append(brandNames[i]);
-			if (i == specialInx)
-				hrMenu.append("*");
-			System.out.println(hrMenu);
+		/**
+		 * 고객의 의사를 확인한다. 고객 입력 문자가 'Y', 'y', 'N', 'n' 문자 
+		 * 혹은 [엔터] 키가 아니면 재 입력을 요구한다.
+		 * 
+		 * @param type    고객이 선택한 차 종류
+		 * @param scanner 고객 입력 접수용 참조
+		 * @return 참: 'Y', 'y', [엔터]키 일 때, 
+		 * 		   거짓: 'N', 'n'일 때.
+		 */
+		private boolean getUserResponse(String question, 
+				Scanner scanner) {
+			String input;
+			boolean validInput = true;
+			
+			do {
+				if (!validInput) {
+					Toolkit.getDefaultToolkit().beep();
+					System.out.println("입력 오류입니다. 다시 입력해 주세요");
+				}
+				System.out.println(question + "?");
+				System.out.print("Y/y/[엔터]=예; N/n=아니오: ");
+				input = 입력접수(scanner);
+				if (input != null) {
+					input = input.trim().toLowerCase();
+				}
+				validInput = "y".equals(input) 
+						|| "n".equals(input)
+						|| (input != null && input.isEmpty());
+			} while (!validInput);
+
+			if (input != null) {
+				input = input.trim().toLowerCase();
+				if (input.length() == 0 
+						|| input.equals("y"))
+					return true;
+			}
+			assert "n".equals(input)
+					: "'부정' 의사 표시로 부적절한 문자 입력!";
+			return false;
 		}
+	
+	
+	
+	private void showHardSelection() {
+		LocalDate today = LocalDate.now();
+		String weekDay = today.format(DateTimeFormatter
+				.ofPattern("E").withLocale(Locale.KOREAN)); //E:요일
+		
 		System.out.println("=".repeat(40));
-		System.out.print("단축명(ㄱ-ㅎ), 이름(일부/전부) :");
+		System.out.println("다음 하드디스크 종류 중에서 선택하세요:");
+		System.out.println("=".repeat(40));
+		System.out.println(" * : '" + weekDay + "'요일 특별 하드디스크!");
+
+		BrandName[] brandNames = BrandName.values();
+		long specialInx = ChronoUnit.DAYS.between(
+				LocalDate.of(2021, 6, 22), today) 
+				% brandNames.length;
+		int brandCount = brandNames.length;
 		
-		
-		
-		
+		for (int i = 0; i < brandCount; i++) {
+			var teaMenu = new StringBuffer(" -");
+			teaMenu.append(brandNames[i]);
+			if (i == specialInx)
+				teaMenu.append("*");
+			System.out.println(teaMenu);
+		}
+		System.out.println(" -메뉴 선택 안함([엔터])");
+		System.out.println("=".repeat(40));
+		System.out.print("단축명(ㄱ-ㅎ), 이름(일부/전부): ");
 	}
 
 }
