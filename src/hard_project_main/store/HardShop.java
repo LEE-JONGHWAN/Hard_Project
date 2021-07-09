@@ -11,7 +11,7 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.jbpark.utility.JH_FileHandler;
+import com.jhlee.utility.JH_FileHandler;
 
 import hard_project_main.util.BrandName;
 import jbpark.utility.SuffixChecker;
